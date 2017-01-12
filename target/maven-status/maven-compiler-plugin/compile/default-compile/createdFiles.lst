@@ -1,6 +1,0 @@
-org/apiguard/service/exceptions/ApiException.class
-org/apiguard/service/ApiServiceCassandraImpl$1.class
-org/apiguard/service/ApiService.class
-org/apiguard/service/ApiServiceCassandraImpl.class
-org/apiguard/constants/AuthType.class
-org/apiguard/service/utils/ListUtils.class
