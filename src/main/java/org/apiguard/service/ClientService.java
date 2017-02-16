@@ -7,5 +7,7 @@ public interface ClientService<T> {
 	public T addClient(String clientId) throws ClientException;
 
 	public T getClient(String clientId);
+	
+	public boolean exists(String clientId);
 
 }

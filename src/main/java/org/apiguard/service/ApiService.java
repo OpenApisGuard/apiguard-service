@@ -8,11 +8,11 @@ import org.apiguard.service.exceptions.ApiException;
 
 public interface ApiService<T> {
 
-	public T addApi(String name, String reqUri, String fwdUri) throws ApiException;
+	public T addApi(String name, String reqUri, String downstreamUri) throws ApiException;
 
 	public boolean deleteApi(String name) throws ApiException;
 
-	public T updateApi(String name, String reqUri, String fwdUri) throws ApiException;
+	public T updateApi(String name, String reqUri, String downstreamUri) throws ApiException;
 
 	public T updateApiAuth(String reqUri, AuthType method, boolean enable) throws ApiException;
 

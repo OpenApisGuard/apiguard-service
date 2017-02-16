@@ -26,7 +26,7 @@ public class ApiServiceCassandraImpl implements ApiService<ApiEntity>{
 	ApiNameRepo apiNameRepo;
 
 	@Override
-	public ApiEntity addApi(String name, String reqUri, String fwdUri) throws ApiException {
+	public ApiEntity addApi(String name, String reqUri, String downstreamUri) throws ApiException {
 		boolean reqUriExists = apiRequestUriExists(reqUri);
 		if (reqUriExists || apiNameExists(name)) {
 			String msg = "Api name: " + name + " already exists.";
@@ -37,9 +37,9 @@ public class ApiServiceCassandraImpl implements ApiService<ApiEntity>{
 		}
 		
 		UUID id = UUIDs.timeBased();
-		Date creationDate = new Date();
-		ApiEntity apiDomain = new ApiEntity(id, creationDate, name, reqUri, fwdUri);
-		ApiNameEntity apiNameDomain = new ApiNameEntity(id, creationDate, name, reqUri);
+		Date now = new Date();
+		ApiEntity apiDomain = new ApiEntity(id, now, now, name, reqUri, downstreamUri);
+		ApiNameEntity apiNameDomain = new ApiNameEntity(id, now, now, name, reqUri);
 		
 		try {
 			apiRepo.save(apiDomain);
@@ -80,7 +80,7 @@ public class ApiServiceCassandraImpl implements ApiService<ApiEntity>{
 	}
 
 	@Override
-	public ApiEntity updateApi(String name, String reqUri, String fwdUri) throws ApiException {
+	public ApiEntity updateApi(String name, String reqUri, String downstreamUri) throws ApiException {
 		// TODO Auto-generated method stub
 		return null;
 	}
