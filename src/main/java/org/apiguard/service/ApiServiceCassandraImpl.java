@@ -1,9 +1,6 @@
 package org.apiguard.service;
 
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
-
+import com.datastax.driver.core.utils.UUIDs;
 import org.apiguard.cassandra.entity.ApiEntity;
 import org.apiguard.cassandra.entity.ApiNameEntity;
 import org.apiguard.cassandra.repo.ApiNameRepo;
@@ -14,7 +11,9 @@ import org.apiguard.service.utils.ListUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.datastax.driver.core.utils.UUIDs;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
 
 @Component
 public class ApiServiceCassandraImpl implements ApiService<ApiEntity>{
@@ -25,7 +24,6 @@ public class ApiServiceCassandraImpl implements ApiService<ApiEntity>{
 	@Autowired
 	ApiNameRepo apiNameRepo;
 
-	@Override
 	public ApiEntity addApi(String name, String reqUri, String downstreamUri) throws ApiException {
 		boolean reqUriExists = apiRequestUriExists(reqUri);
 		if (reqUriExists || apiNameExists(name)) {
@@ -53,12 +51,10 @@ public class ApiServiceCassandraImpl implements ApiService<ApiEntity>{
 		return apiDomain;
 	}
 	
-	@Override
 	public ApiEntity getApiByReqUri(String reqUri) {
 		return apiRepo.findOne(reqUri);
 	}
 
-	@Override
 	public ApiEntity getApiByName(String name) {
 		ApiEntity res = null;
 		ApiNameEntity apiName = apiNameRepo.findOne(name);
@@ -73,19 +69,16 @@ public class ApiServiceCassandraImpl implements ApiService<ApiEntity>{
 		return apiNameRepo.findOne(name);
 	}
 
-	@Override
 	public List<ApiEntity> getAllApis() {
 		Iterable<ApiEntity> apis = apiRepo.findAll();
 		return ListUtils.getList(apis);
 	}
 
-	@Override
 	public ApiEntity updateApi(String name, String reqUri, String downstreamUri) throws ApiException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	@Override
 	public ApiEntity updateApiAuth(String reqUri, AuthType method, boolean enable) throws ApiException {
 		ApiEntity api = getApiByReqUri(reqUri);
 		if (api == null) {
@@ -111,25 +104,28 @@ public class ApiServiceCassandraImpl implements ApiService<ApiEntity>{
 		case OAUTH2:
 			api.setOAuth2Auth(enable);
 			break;
+		case SIGNATURE:
+			api.setSignatureAuth(enable);
+			break;
+		case DIGITAL_SIGNATURE:
+			api.setDigitalAuth(enable);
 		}
 		
-		api.setAuthRequired(api.isBasicAuth() || api.isHmacAuth() || api.isJwtAuth() || api.isKeyAuth() || api.isLdapAuth() || api.isOAuth2Auth());
+		api.setAuthRequired(api.isBasicAuth() || api.isHmacAuth() || api.isJwtAuth() || api.isKeyAuth() || api.isLdapAuth()
+				|| api.isOAuth2Auth() || api.isDigitalAuth() || api.isSignatureAuth());
 		api.setLastUpdateDate(new Date());
 		ApiEntity res = apiRepo.save(api);
 		return res;
 	}
 
-	@Override
 	public boolean apiRequestUriExists(String reqUri) {
 		return apiRepo.exists(reqUri);
 	}
 
-	@Override
 	public boolean apiNameExists(String name) {
 		return apiNameRepo.exists(name);
 	}
 
-	@Override
 	public boolean deleteApi(String name) throws ApiException {
 		ApiNameEntity apiNameDomain = getApiNameByName(name);
 		if (apiNameDomain == null) {

@@ -8,10 +8,12 @@ public enum AuthType {
 
 	BASIC(0, "basic-auth", "username"),
 	KEY(1, "key-auth", "apiKey"),
-	HMAC(2, "hmac-auth", "Authorization-hmac"),
-	OAUTH2(3, "oauth2-auth", "Authorization-oauth2"), 
-	JWT(4, "jwt-auth", "Authorization-jwt"), 
-	LDAP(5, "ldap-auth", "Authorization-ldap");
+	HMAC(2, "hmac-auth", "hmac"),
+	OAUTH2(3, "oauth2-auth", "oauth2"),
+	JWT(4, "jwt-auth", "jwt"),
+	LDAP(5, "ldap-auth", "ldap"),
+	SIGNATURE(6, "signature-auth", "signature"),
+	DIGITAL_SIGNATURE(7, "digital-signature-auth", "digital");
 
 	private int id;
 	private String name;
