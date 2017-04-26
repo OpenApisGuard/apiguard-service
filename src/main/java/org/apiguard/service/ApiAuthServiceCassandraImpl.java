@@ -147,6 +147,9 @@ public class ApiAuthServiceCassandraImpl implements ApiAuthService {
 	public boolean basicAuthMatches(String requestUri, String clientId, String password) {
 		BasicAuthId id = new BasicAuthId(requestUri, clientId);
 		BasicAuthEntity res = basicAuthRepo.findOne(id);
+		if (res == null) {
+		    return false;
+        }
 		return EncryptUtil.verify(password, res.getPassword());
 	}
 
@@ -154,6 +157,9 @@ public class ApiAuthServiceCassandraImpl implements ApiAuthService {
 	    try {
             SignatureAuthId id = new SignatureAuthId(requestUri, clientId, clientAlias);
             SignatureAuthEntity res = signatureAuthRepo.findOne(id);
+            if (res == null) {
+                return false;
+            }
             String serverSign = HttpSignature.signWithBase64(encryptor.decrypt(res.getSecret()), stringToSign, Algorithm.getAlgorithmByName(algorithm));
             return serverSign.equals(signature);
         }
