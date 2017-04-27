@@ -6,7 +6,7 @@ import java.util.Map;
 
 public enum AuthType {
 
-	BASIC(0, "basic-auth", "username"),
+	BASIC(0, "basic-auth", "basic"),
 	KEY(1, "key-auth", "apiKey"),
 	HMAC(2, "hmac-auth", "hmac"),
 	OAUTH2(3, "oauth2-auth", "oauth2"),
