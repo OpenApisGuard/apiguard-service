@@ -14,6 +14,8 @@ import org.springframework.stereotype.Component;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Component
 public class ApiServiceCassandraImpl implements ApiService<ApiEntity>{
@@ -50,9 +52,31 @@ public class ApiServiceCassandraImpl implements ApiService<ApiEntity>{
 		}
 		return apiDomain;
 	}
-	
+
 	public ApiEntity getApiByReqUri(String reqUri) {
-		return apiRepo.findOne(reqUri);
+		ApiEntity res = apiRepo.findOne(reqUri);
+
+		if (res == null) {
+			int ind = reqUri.indexOf("/", 1);
+			if (ind > 0 && reqUri.startsWith("/")) {
+				String prefix = reqUri.substring(0, ind+1);
+				List<ApiEntity> apis = apiRepo.findByReqUriRegex(prefix);
+
+				// do regex matching
+                for(ApiEntity cur : apis) {
+                    Pattern pattern = Pattern.compile(cur.getReqUri());
+                    Matcher matcher = pattern.matcher(reqUri);
+                    if(matcher.matches()) {
+                        return cur;
+                    }
+                }
+			}
+			else {
+				return res;
+			}
+		}
+
+		return res;
 	}
 
 	public ApiEntity getApiByName(String name) {
