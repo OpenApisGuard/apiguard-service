@@ -3,14 +3,17 @@ package org.apiguard.service;
 import com.datastax.driver.core.utils.UUIDs;
 import org.apiguard.cassandra.entity.ApiEntity;
 import org.apiguard.cassandra.entity.ApiNameEntity;
+import org.apiguard.cassandra.entity.ApiReqUriIndexEntity;
 import org.apiguard.cassandra.repo.ApiNameRepo;
 import org.apiguard.cassandra.repo.ApiRepo;
+import org.apiguard.cassandra.repo.ApiReqUriIndexRepo;
 import org.apiguard.constants.AuthType;
 import org.apiguard.service.exceptions.ApiException;
 import org.apiguard.service.utils.ListUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -26,6 +29,9 @@ public class ApiServiceCassandraImpl implements ApiService<ApiEntity>{
 	@Autowired
 	ApiNameRepo apiNameRepo;
 
+	@Autowired
+    ApiReqUriIndexRepo apiReqUriIndexRepo;
+
 	public ApiEntity addApi(String name, String reqUri, String downstreamUri) throws ApiException {
 		boolean reqUriExists = apiRequestUriExists(reqUri);
 		if (reqUriExists || apiNameExists(name)) {
@@ -35,39 +41,78 @@ public class ApiServiceCassandraImpl implements ApiService<ApiEntity>{
 			}
 			throw new ApiException(msg);
 		}
-		
-		UUID id = UUIDs.timeBased();
-		Date now = new Date();
-		ApiEntity apiDomain = new ApiEntity(id, now, now, name, reqUri, downstreamUri);
-		ApiNameEntity apiNameDomain = new ApiNameEntity(id, now, now, name, reqUri);
-		
-		try {
-			apiRepo.save(apiDomain);
-			apiNameRepo.save(apiNameDomain);
-		}
-		catch(Exception e) {
-			apiRepo.delete(apiDomain);
-			apiNameRepo.delete(apiNameDomain);
-			throw new ApiException("Internal error when saving api: " + e.getMessage());
-		}
-		return apiDomain;
+
+        return updateApiEntity(name, reqUri, downstreamUri);
 	}
 
-	public ApiEntity getApiByReqUri(String reqUri) {
+    private ApiEntity updateApiEntity(String name, String reqUri, String downstreamUri) throws ApiException {
+        UUID id = UUIDs.timeBased();
+        Date now = new Date();
+        ApiEntity apiDomain = new ApiEntity(id, now, now, name, reqUri, downstreamUri);
+        ApiNameEntity apiNameDomain = new ApiNameEntity(id, now, now, name, reqUri);
+
+        ApiReqUriIndexEntity reqUriInd = null;
+        ApiReqUriIndexEntity apiReqRriInd = null;
+        try {
+            apiRepo.save(apiDomain);
+            apiNameRepo.save(apiNameDomain);
+
+            String prefix = reqUri.substring(0, reqUri.indexOf("/", 1) + 1);
+            if (prefix == null) {
+                throw new ApiException("Invalid request uri which has to start with / ");
+            }
+
+            reqUriInd = apiReqUriIndexRepo.findOne(prefix);
+            List<String> matches = null;
+            if (reqUriInd == null) {
+                matches = new ArrayList<String>();
+            }
+            else {
+                matches = reqUriInd.getMatches();
+            }
+
+            matches.add(reqUri);
+            apiReqRriInd = new ApiReqUriIndexEntity(id, now, now, prefix, matches);
+            apiReqUriIndexRepo.save(apiReqRriInd);
+        }
+        catch(ArrayIndexOutOfBoundsException e) {
+            throw new ApiException("Invalid request uri which has to start with / ");
+        }
+        catch(Exception e) {
+            apiRepo.delete(apiDomain);
+            apiNameRepo.delete(apiNameDomain);
+
+            if (reqUriInd == null && apiReqRriInd != null) {
+                apiReqUriIndexRepo.delete(apiReqRriInd);
+            }
+            else { // rollback to previous
+                apiReqUriIndexRepo.save(reqUriInd);
+            }
+
+            throw new ApiException("Internal error when saving api: " + e.getMessage());
+        }
+        return apiDomain;
+    }
+
+    public ApiEntity getApiByReqUri(String reqUri) {
 		ApiEntity res = apiRepo.findOne(reqUri);
 
 		if (res == null) {
 			int ind = reqUri.indexOf("/", 1);
 			if (ind > 0 && reqUri.startsWith("/")) {
 				String prefix = reqUri.substring(0, ind+1);
-				List<ApiEntity> apis = apiRepo.findByReqUriRegex(prefix);
+                ApiReqUriIndexEntity reqUriInd = apiReqUriIndexRepo.findOne(prefix);
 
-				// do regex matching
-                for(ApiEntity cur : apis) {
-                    Pattern pattern = Pattern.compile(cur.getReqUri());
+                if (reqUriInd == null) {
+                    return res;
+                }
+
+                // do regex matching
+                for(String cur : reqUriInd.getMatches()) {
+                    Pattern pattern = Pattern.compile(cur);
                     Matcher matcher = pattern.matcher(reqUri);
                     if(matcher.matches()) {
-                        return cur;
+                        return apiRepo.findOne(cur);
                     }
                 }
 			}
@@ -99,8 +144,13 @@ public class ApiServiceCassandraImpl implements ApiService<ApiEntity>{
 	}
 
 	public ApiEntity updateApi(String name, String reqUri, String downstreamUri) throws ApiException {
-		// TODO Auto-generated method stub
-		return null;
+        boolean reqUriExists = apiRequestUriExists(reqUri);
+        if (!reqUriExists || !apiNameExists(name)) {
+            String msg = "Api name and/or req uri do not exist.";
+            throw new ApiException(msg);
+        }
+
+        return updateApiEntity(name, reqUri, downstreamUri);
 	}
 
 	public ApiEntity updateApiAuth(String reqUri, AuthType method, boolean enable) throws ApiException {
