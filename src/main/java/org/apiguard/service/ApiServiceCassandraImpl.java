@@ -1,12 +1,8 @@
 package org.apiguard.service;
 
 import com.datastax.driver.core.utils.UUIDs;
-import org.apiguard.cassandra.entity.ApiEntity;
-import org.apiguard.cassandra.entity.ApiNameEntity;
-import org.apiguard.cassandra.entity.ApiReqUriIndexEntity;
-import org.apiguard.cassandra.repo.ApiNameRepo;
-import org.apiguard.cassandra.repo.ApiRepo;
-import org.apiguard.cassandra.repo.ApiReqUriIndexRepo;
+import org.apiguard.cassandra.entity.*;
+import org.apiguard.cassandra.repo.*;
 import org.apiguard.constants.AuthType;
 import org.apiguard.service.exceptions.ApiException;
 import org.apiguard.service.utils.ListUtils;
@@ -31,6 +27,18 @@ public class ApiServiceCassandraImpl implements ApiService<ApiEntity>{
 
 	@Autowired
     ApiReqUriIndexRepo apiReqUriIndexRepo;
+
+    @Autowired
+	BasicAuthRepo basicAuthRepo;
+
+    @Autowired
+    ClientRepo clientRepo;
+
+    @Autowired
+    KeyAuthRepo keyAuthRepo;
+
+    @Autowired
+    SignatureAuthRepo signatureAuthRepo;
 
 	public ApiEntity addApi(String name, String reqUri, String downstreamUri) throws ApiException {
 		boolean reqUriExists = apiRequestUriExists(reqUri);
@@ -200,20 +208,50 @@ public class ApiServiceCassandraImpl implements ApiService<ApiEntity>{
 		return apiNameRepo.exists(name);
 	}
 
-	public boolean deleteApi(String name) throws ApiException {
+	public void deleteApi(String name) throws ApiException {
 		ApiNameEntity apiNameDomain = getApiNameByName(name);
 		if (apiNameDomain == null) {
 			throw new ApiException("Api name: " + name + " does not exist.");
 		}
 		
 		try {
-			ApiEntity apiDomain = getApiByReqUri(apiNameDomain.getReqUri());
-			apiRepo.delete(apiDomain);
-			apiNameRepo.delete(apiNameDomain);
-		}
+            String reqUri = apiNameDomain.getReqUri();
+            ApiEntity apiDomain = getApiByReqUri(reqUri);
+
+            // remove all auths
+            List<BasicAuthEntity> basicAuths = basicAuthRepo.findByReqUri(reqUri);
+            if (basicAuths != null && !basicAuths.isEmpty()) {
+                basicAuthRepo.delete(basicAuths);
+            }
+
+            List<KeyAuthEntity> keyAuths = keyAuthRepo.findByReqUri(reqUri);
+            if (keyAuths != null && !keyAuths.isEmpty()) {
+                keyAuthRepo.delete(keyAuths);
+            }
+
+            List<SignatureAuthEntity> sigAuths = signatureAuthRepo.findByReqUri(reqUri);
+            if (sigAuths != null && !sigAuths.isEmpty()) {
+                signatureAuthRepo.delete(sigAuths);
+            }
+
+            // remove from index
+            String prefix = reqUri.substring(0, reqUri.indexOf("/", 1) + 1);
+            ApiReqUriIndexEntity reqUriInd = apiReqUriIndexRepo.findOne(prefix);
+            List<String> matches = reqUriInd.getMatches();
+            matches.remove(reqUri);
+            if (matches.isEmpty()) {
+                apiReqUriIndexRepo.delete(prefix);
+            }
+            else {
+                apiReqUriIndexRepo.save(reqUriInd);
+            }
+
+            // remove actual api
+            apiRepo.delete(apiDomain);
+            apiNameRepo.delete(apiNameDomain);
+        }
 		catch(Exception e) {
 			throw new ApiException("Internal error when deleting api: " + e.getMessage());
 		}
-		return false;
 	}
 }

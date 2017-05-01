@@ -1,16 +1,16 @@
 package org.apiguard.service;
 
-import java.util.List;
-
 import org.apiguard.cassandra.entity.ApiEntity;
 import org.apiguard.constants.AuthType;
 import org.apiguard.service.exceptions.ApiException;
+
+import java.util.List;
 
 public interface ApiService<T> {
 
 	public T addApi(String name, String reqUri, String downstreamUri) throws ApiException;
 
-	public boolean deleteApi(String name) throws ApiException;
+	public void deleteApi(String name) throws ApiException;
 
 	public T updateApi(String name, String reqUri, String downstreamUri) throws ApiException;
 
