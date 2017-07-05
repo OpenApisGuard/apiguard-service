@@ -10,7 +10,7 @@ public enum AuthType {
 	KEY(1, "key-auth", "apiKey"),
 	HMAC(2, "hmac-auth", "hmac"),
 	OAUTH2(3, "oauth2-auth", "oauth2"),
-	JWT(4, "jwt-auth", "jwt"),
+	JWT(4, "jwt-auth", "bearer"),
 	LDAP(5, "ldap-auth", "ldap"),
 	SIGNATURE(6, "signature-auth", "signature"),
 	DIGITAL_SIGNATURE(7, "digital-signature-auth", "digital");

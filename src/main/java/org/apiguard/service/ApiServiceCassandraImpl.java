@@ -1,6 +1,5 @@
 package org.apiguard.service;
 
-import com.datastax.driver.core.utils.UUIDs;
 import org.apiguard.cassandra.entity.*;
 import org.apiguard.cassandra.repo.*;
 import org.apiguard.constants.AuthType;
@@ -40,6 +39,12 @@ public class ApiServiceCassandraImpl implements ApiService<ApiEntity>{
     @Autowired
     SignatureAuthRepo signatureAuthRepo;
 
+    @Autowired
+	LdapAuthRepo ldapAuthRepo;
+
+    @Autowired
+	JwtAuthRepo jwtAuthRepo;
+
 	public ApiEntity addApi(String name, String reqUri, String downstreamUri) throws ApiException {
 		boolean reqUriExists = apiRequestUriExists(reqUri);
 		if (reqUriExists || apiNameExists(name)) {
@@ -50,11 +55,15 @@ public class ApiServiceCassandraImpl implements ApiService<ApiEntity>{
 			throw new ApiException(msg);
 		}
 
+		if (!downstreamUri.startsWith("http://") && !downstreamUri.startsWith("https://") && !downstreamUri.startsWith("ftp://")) {
+			throw new ApiException("Supported downstream protocols are: HTTP and FTP");
+		}
+
         return updateApiEntity(name, reqUri, downstreamUri);
 	}
 
     private ApiEntity updateApiEntity(String name, String reqUri, String downstreamUri) throws ApiException {
-        UUID id = UUIDs.timeBased();
+        String id = UUID.randomUUID().toString();
         Date now = new Date();
         ApiEntity apiDomain = new ApiEntity(id, now, now, name, reqUri, downstreamUri);
         ApiNameEntity apiNameDomain = new ApiNameEntity(id, now, now, name, reqUri);
@@ -234,7 +243,17 @@ public class ApiServiceCassandraImpl implements ApiService<ApiEntity>{
                 signatureAuthRepo.delete(sigAuths);
             }
 
-            // remove from index
+			List<LdapAuthEntity> ldapAuths = ldapAuthRepo.findByReqUri(reqUri);
+            if (ldapAuths != null && !ldapAuths.isEmpty()) {
+            	ldapAuthRepo.delete(ldapAuths);
+			}
+
+			List<JwtAuthEntity> jwtAuths = jwtAuthRepo.findByReqUri(reqUri);
+            if (jwtAuths != null && !jwtAuths.isEmpty()) {
+				jwtAuthRepo.delete(jwtAuths);
+			}
+
+			// remove from index
             String prefix = reqUri.substring(0, reqUri.indexOf("/", 1) + 1);
             ApiReqUriIndexEntity reqUriInd = apiReqUriIndexRepo.findOne(prefix);
             List<String> matches = reqUriInd.getMatches();
