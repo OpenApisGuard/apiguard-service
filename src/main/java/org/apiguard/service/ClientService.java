@@ -2,6 +2,8 @@ package org.apiguard.service;
 
 import org.apiguard.service.exceptions.ClientException;
 
+import java.util.List;
+
 /*
  * Copyright 2017 the original author or authors.
  *
@@ -20,10 +22,14 @@ import org.apiguard.service.exceptions.ClientException;
 
 public interface ClientService<T> {
 
-	public T addClient(String clientId) throws ClientException;
+	public T addClient(String clientId, String email, String firstName, String lastName) throws ClientException;
 
 	public T getClient(String clientId);
-	
+
+	public List<T> getClients(int offset, int count);
+
 	public boolean exists(String clientId);
+
+	public boolean existsEmail(String email);
 
 }

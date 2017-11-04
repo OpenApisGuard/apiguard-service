@@ -106,7 +106,7 @@ public class ApiAuthServiceCassandraImpl implements ApiAuthService {
         }
 
         Date now = new Date();
-        KeyAuthEntity keyAuth = new KeyAuthEntity(UUID.randomUUID().toString(), now, now, requestUri, key, clientId);
+        KeyAuthEntity keyAuth = new KeyAuthEntity(UUID.randomUUID().toString(), now, now, requestUri, encryptor.encrypt(key), clientId);
         keyAuthRepo.save(keyAuth);
 
         log.debug("Added key auth to requestUri: " + requestUri, ", with clientId: " + clientId);
@@ -118,6 +118,7 @@ public class ApiAuthServiceCassandraImpl implements ApiAuthService {
             throw new ApiAuthException(e.getMessage(), e);
         }
 
+        keyAuth.setDecryptedKey(key);
         return keyAuth;
     }
 
@@ -204,6 +205,7 @@ public class ApiAuthServiceCassandraImpl implements ApiAuthService {
             throw new CryptoException(e);
         }
 
+        signatureAuth.setDecryptedSecret(secret);
         return signatureAuth;
     }
 
