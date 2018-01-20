@@ -122,15 +122,11 @@ public class ApiAuthServiceCassandraImpl implements ApiAuthService {
         return keyAuth;
     }
 
-    public KeyAuthEntity getKeyAuth(String key, String requestUri) throws ApiAuthException {
-        KeyAuthId id = new KeyAuthId(requestUri, key);
-        return keyAuthRepo.findOne(id);
-    }
-
     public BasicAuthEntity addBasicAuth(String requestUri, String clientId, String password)
             throws ApiAuthException {
         ApiEntity api = apiService.getApiByReqUri(requestUri);
         if (api == null) {
+            log.error("Api requst uri: " + requestUri + " not found.");
             throw new ApiAuthException("Api requst uri: " + requestUri + " not found.");
         }
 
@@ -146,6 +142,7 @@ public class ApiAuthServiceCassandraImpl implements ApiAuthService {
         try {
             Api addApi = apiService.updateApiAuth(requestUri, AuthType.BASIC, true);
         } catch (ApiException e) {
+            log.error(e.getMessage(), e);
             throw new ApiAuthException(e.getMessage(), e);
         }
 
@@ -173,6 +170,7 @@ public class ApiAuthServiceCassandraImpl implements ApiAuthService {
         try {
             Api addApi = apiService.updateApiAuth(requestUri, AuthType.LDAP, true);
         } catch (ApiException e) {
+            log.error(e.getMessage(), e);
             throw new ApiAuthException(e.getMessage(), e);
         }
 
@@ -200,8 +198,10 @@ public class ApiAuthServiceCassandraImpl implements ApiAuthService {
 
             Api addApi = apiService.updateApiAuth(requestUri, AuthType.SIGNATURE, true);
         } catch (ApiException e) {
+            log.error(e.getMessage(), e);
             throw new ApiAuthException(e.getMessage(), e);
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             throw new CryptoException(e);
         }
 
@@ -229,6 +229,7 @@ public class ApiAuthServiceCassandraImpl implements ApiAuthService {
         try {
             Api addApi = apiService.updateApiAuth(requestUri, AuthType.JWT, true);
         } catch (ApiException e) {
+            log.error(e.getMessage(), e);
             throw new ApiAuthException(e.getMessage(), e);
         }
 
@@ -238,7 +239,7 @@ public class ApiAuthServiceCassandraImpl implements ApiAuthService {
     //-------- validations --------- //
 
     public boolean keyAuthMatches(String requestUri, String key) {
-        KeyAuthId id = new KeyAuthId(requestUri, key);
+        KeyAuthId id = new KeyAuthId(requestUri, encryptor.encrypt(key));
         return keyAuthRepo.exists(id);
     }
 
@@ -261,6 +262,7 @@ public class ApiAuthServiceCassandraImpl implements ApiAuthService {
             String serverSign = HttpSignature.signWithBase64(encryptor.decrypt(res.getSecret()), stringToSign, Algorithm.getAlgorithmByName(algorithm));
             return serverSign.equals(signature);
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             throw new CryptoException(e);
         }
     }

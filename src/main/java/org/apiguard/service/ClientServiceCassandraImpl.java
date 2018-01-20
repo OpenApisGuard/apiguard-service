@@ -2,6 +2,8 @@ package org.apiguard.service;
 
 import com.datastax.driver.core.utils.UUIDs;
 import com.google.common.collect.Lists;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apiguard.cassandra.entity.ClientEmailEntity;
 import org.apiguard.cassandra.entity.ClientEntity;
 import org.apiguard.cassandra.repo.ClientEmailRepo;
@@ -32,6 +34,8 @@ import java.util.List;
 
 @Component("cassandraClientService")
 public class ClientServiceCassandraImpl implements ClientService<ClientEntity>{
+
+	private static final Logger log = LogManager.getLogger(ClientServiceCassandraImpl.class);
 
 	@Autowired
 	ClientRepo clientRepo;
@@ -66,6 +70,8 @@ public class ClientServiceCassandraImpl implements ClientService<ClientEntity>{
 			if (! StringUtils.isEmpty(email)) {
 				clientEmailRepo.delete(cee);
 			}
+
+			log.error(e.getMessage(), e);
 
 			throw new ClientException("Internal error when saving client: " + clientId + ". " + e.getMessage());
 		}

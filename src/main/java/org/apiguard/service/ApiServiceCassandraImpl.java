@@ -1,5 +1,7 @@
 package org.apiguard.service;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apiguard.cassandra.entity.*;
 import org.apiguard.cassandra.repo.*;
 import org.apiguard.constants.AuthType;
@@ -33,6 +35,8 @@ import java.util.regex.Pattern;
 
 @Component
 public class ApiServiceCassandraImpl implements ApiService<ApiEntity>{
+
+	private static final Logger log = LogManager.getLogger(ApiServiceCassandraImpl.class);
 	
 	@Autowired
 	ApiRepo apiRepo;
@@ -109,6 +113,7 @@ public class ApiServiceCassandraImpl implements ApiService<ApiEntity>{
             apiReqUriIndexRepo.save(apiReqRriInd);
         }
         catch(ArrayIndexOutOfBoundsException e) {
+			log.info("Invalid request uri which has to start with / ");
             throw new ApiException("Invalid request uri which has to start with / ");
         }
         catch(Exception e) {
@@ -286,6 +291,7 @@ public class ApiServiceCassandraImpl implements ApiService<ApiEntity>{
             apiNameRepo.delete(apiNameDomain);
         }
 		catch(Exception e) {
+			log.error(e.getMessage(), e);
 			throw new ApiException("Internal error when deleting api: " + e.getMessage());
 		}
 	}
